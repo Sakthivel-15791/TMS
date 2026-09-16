@@ -8,6 +8,7 @@ const ticketRoutes = require('./routes/ticketRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const roleRoutes = require('./routes/roleRoutes');
 const assetRoutes = require('./routes/assetRoutes');
+const { healthCheck } = require('./config/database');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -21,7 +22,15 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/access', roleRoutes);
 app.use('/api/assets', assetRoutes);
-app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'employee-ticket-management' }));
+app.get('/api/health', async (req, res) => {
+	try {
+		await healthCheck();
+		res.json({ status: 'ok', database: 'connected', service: 'employee-ticket-management' });
+	} catch (error) {
+		console.error('Database health check failed:', error);
+		res.status(503).json({ status: 'error', database: 'unavailable', service: 'employee-ticket-management' });
+	}
+});
 app.use((req, res, next) => {
 	if (req.method === 'GET' && !req.path.startsWith('/api/')) return res.sendFile(path.join(__dirname, 'Public', 'index.html'));
 	next();

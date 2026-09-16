@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 
 const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error('DATABASE_URL is not configured');
 const pool = new Pool({
 	connectionString,
 	ssl: connectionString ? { rejectUnauthorized: false } : undefined,
@@ -21,7 +22,7 @@ function isInsertReturningId(sql) {
 async function query(sql, values = []) {
 	const translatedSql = sql.replace(/SHA2\(\?,\s*256\)/gi, "encode(digest(?, 'sha256'), 'hex')");
 	const finalSql = isInsertReturningId(translatedSql) ? `${translatedSql} RETURNING id` : translatedSql;
-	const result = await pool.query(postgresQuery(finalSql, values));
+	const result = await pool.query(postgresQuery(finalSql), values);
 	if (/^\s*SELECT\b/i.test(finalSql) || /\bRETURNING\b/i.test(finalSql)) {
 		if (/^\s*INSERT\b/i.test(finalSql)) return [{ insertId: result.rows[0]?.id, affectedRows: result.rowCount }];
 		return [result.rows];
@@ -40,13 +41,17 @@ async function getConnection() {
 	};
 }
 
+async function healthCheck() {
+	await pool.query('SELECT 1');
+}
+
 async function queryWithClient(client, sql, values = []) {
 	const translatedSql = sql.replace(/SHA2\(\?,\s*256\)/gi, "encode(digest(?, 'sha256'), 'hex')");
 	const finalSql = isInsertReturningId(translatedSql) ? `${translatedSql} RETURNING id` : translatedSql;
-	const result = await client.query(postgresQuery(finalSql, values));
+	const result = await client.query(postgresQuery(finalSql), values);
 	if (/^\s*SELECT\b/i.test(finalSql)) return [result.rows];
 	if (/\bRETURNING\b/i.test(finalSql)) return [{ insertId: result.rows[0]?.id, affectedRows: result.rowCount }];
 	return [{ affectedRows: result.rowCount }];
 }
 
-module.exports = { query, getConnection };
+module.exports = { query, getConnection, healthCheck };
