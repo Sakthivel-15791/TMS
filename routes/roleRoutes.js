@@ -1,0 +1,16 @@
+const express = require('express');
+const controller = require('../controllers/roleController');
+const { requireAuth, requireAdmin } = require('../middleware/authMiddleware');
+const router = express.Router();
+router.use(requireAuth);
+router.get('/pages', controller.listPages);
+router.get('/roles/:id/pages', controller.getRolePages);
+router.use(requireAdmin);
+router.get('/roles', controller.listRoles);
+router.post('/roles', controller.createRole);
+router.put('/roles/:id', controller.updateRole);
+router.put('/roles/:id/pages', controller.updateRolePages);
+router.get('/users', controller.listUsers);
+router.post('/users', controller.createUser);
+router.put('/users/:id', controller.updateUser);
+module.exports = router;

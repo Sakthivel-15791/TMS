@@ -1,0 +1,12 @@
+const express = require('express');
+const controller = require('../controllers/assetController');
+const { requireAuth } = require('../middleware/authMiddleware');
+const router = express.Router();
+router.use(requireAuth);
+router.get('/mine', controller.listMine);
+router.get('/employees', controller.employees);
+router.get('/', controller.list);
+router.get('/:id', controller.getById);
+router.post('/', controller.create);
+router.post('/:id/assign', controller.assign);
+module.exports = router;

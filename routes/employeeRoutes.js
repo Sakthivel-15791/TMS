@@ -1,0 +1,18 @@
+const express = require('express');
+const controller = require('../controllers/employeeController');
+const { requireAuth } = require('../middleware/authMiddleware');
+const router = express.Router();
+router.use(requireAuth);
+router.get('/', controller.list);
+router.get('/departments', controller.departments);
+router.get('/designations', controller.designations);
+router.get('/:id/details', controller.details);
+router.post('/:id/qualifications', controller.addQualification);
+router.put('/:id/qualifications/:qualificationId', controller.updateQualification);
+router.delete('/:id/qualifications/:qualificationId', controller.deleteQualification);
+router.put('/:id/privileges', controller.updatePrivileges);
+router.get('/:id', controller.getById);
+router.post('/', controller.create);
+router.put('/:id', controller.update);
+router.delete('/:id', controller.remove);
+module.exports = router;

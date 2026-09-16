@@ -1,0 +1,5 @@
+const assetToken = localStorage.getItem('officeDeskToken');
+if (!assetToken) location.href = '/login.html';
+const assetApi = async url => { const response = await fetch(`/api/assets${url}`, { headers: { Authorization: `Bearer ${assetToken}` } }); if (response.status === 401) location.href = '/login.html'; return response.json(); };
+async function loadAssets() { const rows = await assetApi(`?search=${encodeURIComponent(document.getElementById('assetSearch').value)}`); document.getElementById('assetRows').innerHTML = rows.map(asset => `<tr><td class="fw-semibold">${asset.asset_name}</td><td>${asset.serial_no}</td><td>${asset.asset_type}</td><td>${asset.make || '-'} / ${asset.model || '-'}</td><td>${asset.owner_name || '<span class="text-secondary">Unassigned</span>'}</td><td>${asset.status}</td><td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/asset-details.html?id=${asset.id}">View</a></td></tr>`).join('') || '<tr><td colspan="7" class="text-center text-secondary py-5">No assets found</td></tr>'; }
+document.getElementById('assetSearch').addEventListener('input', loadAssets); loadAssets();

@@ -1,0 +1,3 @@
+const assetAddToken = localStorage.getItem('officeDeskToken');
+if (!assetAddToken) location.href = '/login.html';
+document.getElementById('assetForm').addEventListener('submit', async event => { event.preventDefault(); const error = document.getElementById('assetError'); error.classList.add('d-none'); try { const response = await fetch('/api/assets', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${assetAddToken}` }, body: JSON.stringify(Object.fromEntries(new FormData(event.target))) }); const data = await response.json(); if (!response.ok) throw new Error(data.message); location.href = `/asset-details.html?id=${data.id}`; } catch (errorValue) { error.textContent = errorValue.message; error.classList.remove('d-none'); } });

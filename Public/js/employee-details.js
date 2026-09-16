@@ -1,0 +1,27 @@
+const detailsToken = localStorage.getItem('officeDeskToken');
+if (!detailsToken) location.href = '/login.html';
+const employeeId = new URLSearchParams(location.search).get('id');
+if (!employeeId) location.href = '/employee/emp.html';
+const detailsApi = async (url, options = {}) => { const response = await fetch(`/api/employees/${employeeId}${url}`, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${detailsToken}`, ...(options.headers || {}) } }); if (response.status === 401) location.href = '/login.html'; const data = await response.json(); if (!response.ok) throw new Error(data.message || 'Request failed'); return data; };
+const departments = async () => { const response = await fetch('/api/employees/departments', { headers: { Authorization: `Bearer ${detailsToken}` } }); return response.json(); };
+let qualificationId = null;
+const qualificationModal = () => bootstrap.Modal.getOrCreateInstance(document.getElementById('qualificationModal'));
+const escapeValue = value => value === null || value === undefined ? '' : value;
+async function loadDetails() {
+  const data = await detailsApi('/details');
+  document.getElementById('employeeTitle').textContent = data.employee.name;
+  document.getElementById('employeeSubtitle').textContent = `${data.employee.employee_code} · ${data.employee.designation || 'Employee'}`;
+  const form = document.getElementById('profileForm');
+  Object.entries(data.employee).forEach(([key, value]) => { if (form.elements[key]) form.elements[key].value = escapeValue(value); });
+  document.getElementById('qualificationRows').innerHTML = data.qualifications.map(item => `<tr><td>${item.course_degree}</td><td>${item.institute_name}</td><td>${item.year_passed}</td><td>${item.percentage ?? '-'}%</td><td class="text-end"><button class="btn btn-sm btn-outline-secondary edit-qualification" data-id="${item.id}">Edit</button> <button class="btn btn-sm btn-outline-danger delete-qualification" data-id="${item.id}">Delete</button></td></tr>`).join('') || '<tr><td colspan="5" class="text-center text-secondary py-5">No qualifications found</td></tr>';
+  document.querySelectorAll('.edit-qualification').forEach(button => button.addEventListener('click', () => { const item = data.qualifications.find(row => row.id === Number(button.dataset.id)); qualificationId = item.id; document.getElementById('qualificationTitle').textContent = 'Edit qualification'; Object.entries(item).forEach(([key, value]) => { if (document.getElementById('qualificationForm').elements[key]) document.getElementById('qualificationForm').elements[key].value = escapeValue(value); }); qualificationModal().show(); }));
+  document.querySelectorAll('.delete-qualification').forEach(button => button.addEventListener('click', async () => { if (confirm('Delete this qualification?')) { await detailsApi(`/qualifications/${button.dataset.id}`, { method: 'DELETE' }); loadDetails(); } }));
+  document.getElementById('privilegeList').innerHTML = data.privileges.map(item => `<div class="col-md-6"><label class="border rounded d-flex align-items-center gap-3 p-3"><input class="form-check-input privilege-check" type="checkbox" value="${item.id}" ${Number(item.granted) ? 'checked' : ''}><span>${item.privilege_name}</span></label></div>`).join('');
+}
+async function loadDepartments() { const list = await departments(); document.getElementById('employeeDepartment').innerHTML = list.map(item => `<option value="${item.id}">${item.department_name}</option>`).join(''); }
+document.querySelectorAll('#employeeTabs button').forEach(button => button.addEventListener('click', () => { document.querySelectorAll('#employeeTabs button').forEach(item => item.classList.remove('active')); button.classList.add('active'); document.querySelectorAll('.employee-tab').forEach(tab => tab.classList.add('d-none')); document.getElementById(`${button.dataset.tab}Tab`).classList.remove('d-none'); }));
+document.getElementById('profileForm').addEventListener('submit', async event => { event.preventDefault(); try { await detailsApi('', { method: 'PUT', body: JSON.stringify(Object.fromEntries(new FormData(event.target))) }); await loadDetails(); alert('Employee information saved.'); } catch (error) { alert(error.message); } });
+document.getElementById('addQualification').addEventListener('click', () => { qualificationId = null; document.getElementById('qualificationTitle').textContent = 'Add qualification'; document.getElementById('qualificationForm').reset(); qualificationModal().show(); });
+document.getElementById('qualificationForm').addEventListener('submit', async event => { event.preventDefault(); try { await detailsApi(qualificationId ? `/qualifications/${qualificationId}` : '/qualifications', { method: qualificationId ? 'PUT' : 'POST', body: JSON.stringify(Object.fromEntries(new FormData(event.target))) }); qualificationModal().hide(); await loadDetails(); } catch (error) { alert(error.message); } });
+document.getElementById('savePrivileges').addEventListener('click', async () => { try { const privilege_ids = [...document.querySelectorAll('.privilege-check:checked')].map(input => Number(input.value)); await detailsApi('/privileges', { method: 'PUT', body: JSON.stringify({ privilege_ids }) }); alert('Special privileges saved.'); } catch (error) { alert(error.message); } });
+(async () => { try { await loadDepartments(); await loadDetails(); } catch (error) { alert(error.message); } })();

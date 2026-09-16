@@ -1,0 +1,17 @@
+const express = require('express');
+const controller = require('../controllers/ticketController');
+const { requireAuth } = require('../middleware/authMiddleware');
+const router = express.Router();
+router.use(requireAuth);
+router.get('/my', controller.listMine);
+router.get('/department', controller.listDepartment);
+router.get('/', controller.list);
+router.post('/:id/assign', controller.assign);
+router.post('/:id/pick', controller.pick);
+router.post('/:id/notes', controller.comment);
+router.post('/:id/close', controller.close);
+router.get('/:id', controller.getById);
+router.post('/', controller.create);
+router.put('/:id', controller.update);
+router.post('/:id/comments', controller.comment);
+module.exports = router;
